@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#3D5A6C" />
+  <title>Batch Lookup</title>
+  <style>
+    :root {
+      --header: #3D5A6C;
+      --bg: #f5f7fa;
+      --text: #1f2933;
+      --card: #ffffff;
+      --muted: #66788a;
+      --border: #d8e1e8;
+      --natural: #FF9800;
+      --depulped: #4CAF50;
+      --other: #2196F3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--header);
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    main {
+      padding: 16px;
+      padding-bottom: 90px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .search-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .label {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    button {
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 14px;
+    }
+
+    input[type="text"] { margin-bottom: 10px; }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: none;
+      background: var(--header);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--header);
+      border: 1px solid var(--header);
+    }
+
+    button.danger {
+      background: #e53935;
+    }
+
+    .hint {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 0.92rem;
+    }
+
+    .results {
+      margin-top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.02rem;
+      word-break: break-word;
+    }
+
+    .field {
+      margin: 4px 0;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+
+    .field strong { color: #102a43; }
+
+    .badge {
+      display: inline-block;
+      color: #fff;
+      font-size: 0.82rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-height: 55vh;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+      min-width: 640px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e7edf2;
+      text-align: left;
+      padding: 10px;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f2f6fa;
+      z-index: 1;
+    }
+
+    .count {
+      margin: 10px 0;
+      font-weight: 600;
+    }
+
+    nav.bottom-tabs {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      z-index: 30;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: #486581;
+      padding: 12px 8px;
+      min-height: 62px;
+      border-radius: 0;
+      font-size: 0.92rem;
+    }
+
+    .tab-btn.active {
+      color: var(--header);
+      font-weight: 700;
+      border-top: 3px solid var(--header);
+    }
+
+    @media (min-width: 700px) {
+      .btn-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>Batch Lookup</header>
+  <main>
+    <section id="lookupPanel" class="tab-panel active">
+      <div class="search-box">
+        <label class="label" for="lookupInput">Find batch by last 3 digits</label>
+        <input id="lookupInput" type="text" inputmode="numeric" maxlength="3" placeholder="e.g. 303" autocomplete="off" />
+        <div class="btn-row">
+          <button id="searchBtn">Search</button>
+          <button id="clearSearchBtn" class="secondary">Clear Search</button>
+        </div>
+        <p class="hint">Matches Batch IDs that end in these 3 digits (after the last underscore).</p>
+      </div>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section id="uploadPanel" class="tab-panel">
+      <div class="search-box">
+        <label class="label" for="csvFile">Upload CSV (replaces current data)</label>
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+        <div class="btn-row">
+          <button id="uploadBtn">Import CSV</button>
+        </div>
+        <p id="uploadStatus" class="hint">No file selected.</p>
+      </div>
+    </section>
+
+    <section id="dataPanel" class="tab-panel">
+      <div class="count" id="batchCount">Total batches loaded: 0</div>
+      <div class="btn-row" style="margin-bottom: 10px;">
+        <button id="downloadBtn" class="secondary">Download CSV</button>
+        <button id="clearDataBtn" class="danger">Clear All Data</button>
+      </div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-tabs" aria-label="Main navigation">
+    <button class="tab-btn active" data-tab="lookupPanel">Lookup</button>
+    <button class="tab-btn" data-tab="uploadPanel">Upload</button>
+    <button class="tab-btn" data-tab="dataPanel">Data</button>
+  </nav>
+
+  <script>
+    const STORAGE_KEY = 'batch_lookup_records_v1';
+    const REQUIRED_COLUMNS = ['Batch ID', 'Farm', 'Varietal', 'Process'];
+
+    const state = {
+      batches: loadBatches(),
+      headers: []
+    };
+
+    const lookupInput = document.getElementById('lookupInput');
+    const resultsEl = document.getElementById('results');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const csvFile = document.getElementById('csvFile');
+    const batchCount = document.getElementById('batchCount');
+    const tableWrap = document.getElementById('tableWrap');
+
+    function init() {
+      setupTabs();
+      bindEvents();
+      inferHeaders();
+      renderResults([]);
+      renderDataTable();
+      setTimeout(() => lookupInput.focus(), 50);
+    }
+
+    function bindEvents() {
+      document.getElementById('searchBtn').addEventListener('click', performSearch);
+      document.getElementById('clearSearchBtn').addEventListener('click', () => {
+        lookupInput.value = '';
+        renderResults([]);
+        lookupInput.focus();
+      });
+      lookupInput.addEventListener('input', () => {
+        lookupInput.value = lookupInput.value.replace(/\D/g, '').slice(0, 3);
+        if (lookupInput.value.length === 3) performSearch();
+        if (lookupInput.value.length === 0) renderResults([]);
+      });
+      lookupInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') performSearch();
+      });
+
+      csvFile.addEventListener('change', () => {
+        const file = csvFile.files[0];
+        uploadStatus.textContent = file ? `Selected: ${file.name}` : 'No file selected.';
+      });
+
+      document.getElementById('uploadBtn').addEventListener('click', importCsv);
+      document.getElementById('clearDataBtn').addEventListener('click', clearData);
+      document.getElementById('downloadBtn').addEventListener('click', downloadCsv);
+    }
+
+    function setupTabs() {
+      const buttons = Array.from(document.querySelectorAll('.tab-btn'));
+      const panels = Array.from(document.querySelectorAll('.tab-panel'));
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          buttons.forEach((b) => b.classList.toggle('active', b === btn));
+          panels.forEach((p) => p.classList.toggle('active', p.id === btn.dataset.tab));
+          if (btn.dataset.tab === 'lookupPanel') setTimeout(() => lookupInput.focus(), 50);
+        });
+      });
+    }
+
+    function loadBatches() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveBatches() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.batches));
+    }
+
+    function inferHeaders() {
+      const known = new Set(REQUIRED_COLUMNS);
+      state.batches.forEach((row) => Object.keys(row).forEach((k) => known.add(k)));
+      state.headers = Array.from(known);
+    }
+
+    async function importCsv() {
+      const file = csvFile.files[0];
+      if (!file) {
+        uploadStatus.textContent = 'Please choose a CSV file first.';
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const rows = parseCsv(text);
+        if (!rows.length) {
+          uploadStatus.textContent = 'CSV appears empty.';
+          return;
+        }
+
+        const headers = rows[0].map((h) => h.trim());
+        const missing = REQUIRED_COLUMNS.filter((c) => !headers.includes(c));
+        if (missing.length) {
+          uploadStatus.textContent = `Missing required columns: ${missing.join(', ')}`;
+          return;
+        }
+
+        const records = rows.slice(1)
+          .filter((row) => row.some((cell) => cell.trim() !== ''))
+          .map((row) => {
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = (row[i] ?? '').trim(); });
+            return obj;
+          });
+
+        state.batches = records;
+        inferHeaders();
+        saveBatches();
+        renderDataTable();
+        renderResults([]);
+
+        uploadStatus.textContent = `Imported ${records.length} batch(es). Existing data replaced.`;
+      } catch (err) {
+        uploadStatus.textContent = `Failed to parse CSV: ${err.message}`;
+      }
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (ch === ',' && !inQuotes) {
+          row.push(current);
+          current = '';
+          continue;
+        }
+
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i++;
+          row.push(current);
+          rows.push(row);
+          row = [];
+          current = '';
+          continue;
+        }
+
+        current += ch;
+      }
+
+      if (current.length > 0 || row.length > 0) {
+        row.push(current);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function performSearch() {
+      const suffix = lookupInput.value.trim();
+      if (!/^\d{3}$/.test(suffix)) {
+        renderResults([], 'Enter exactly 3 digits to search.');
+        return;
+      }
+
+      const matches = state.batches.filter((batch) => {
+        const id = (batch['Batch ID'] || '').trim();
+        const parts = id.split('_');
+        const last = parts[parts.length - 1] || '';
+        return last === suffix || id.endsWith(suffix);
+      });
+
+      if (!matches.length) {
+        renderResults([], 'No batches found.');
+        return;
+      }
+
+      renderResults(matches);
+    }
+
+    function renderResults(rows, message) {
+      resultsEl.innerHTML = '';
+      if (!rows.length) {
+        const msg = document.createElement('div');
+        msg.className = 'empty';
+        msg.textContent = message || (state.batches.length ? 'Enter 3 digits to search batches.' : 'No data loaded yet. Upload a CSV in the Upload tab.');
+        resultsEl.appendChild(msg);
+        return;
+      }
+
+      rows.forEach((batch) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        const title = document.createElement('h3');
+        title.textContent = batch['Batch ID'] || 'Unknown Batch ID';
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        const processName = (batch.Process || '').trim();
+        badge.textContent = processName || 'Unknown';
+        badge.style.background = getProcessColor(processName);
+        title.appendChild(badge);
+
+        card.appendChild(title);
+
+        state.headers.forEach((key) => {
+          if (!batch[key] || key === 'Batch ID' || key === 'Process') return;
+          const p = document.createElement('p');
+          p.className = 'field';
+          p.innerHTML = `<strong>${escapeHtml(key)}:</strong> ${escapeHtml(batch[key])}`;
+          card.appendChild(p);
+        });
+
+        if (!batch.Farm || !batch.Varietal) {
+          ['Farm', 'Varietal'].forEach((coreKey) => {
+            if (batch[coreKey]) return;
+            const p = document.createElement('p');
+            p.className = 'field';
+            p.innerHTML = `<strong>${coreKey}:</strong> -`;
+            card.appendChild(p);
+          });
+        }
+
+        resultsEl.appendChild(card);
+      });
+    }
+
+    function renderDataTable() {
+      batchCount.textContent = `Total batches loaded: ${state.batches.length}`;
+
+      if (!state.batches.length) {
+        tableWrap.innerHTML = '<div class="empty" style="margin: 8px;">No batch data loaded.</div>';
+        return;
+      }
+
+      const thead = `<thead><tr>${state.headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${state.batches.map((row) => `<tr>${state.headers.map((h) => `<td>${escapeHtml(row[h] || '')}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      tableWrap.innerHTML = `<table>${thead}${tbody}</table>`;
+    }
+
+    function clearData() {
+      if (!confirm('Are you sure you want to clear all batch data?')) return;
+      state.batches = [];
+      inferHeaders();
+      saveBatches();
+      renderDataTable();
+      renderResults([]);
+      uploadStatus.textContent = 'All data cleared.';
+    }
+
+    function downloadCsv() {
+      if (!state.batches.length) {
+        alert('No data to download.');
+        return;
+      }
+
+      const headers = state.headers;
+      const lines = [headers.map(csvEscape).join(',')];
+      state.batches.forEach((row) => {
+        lines.push(headers.map((h) => csvEscape(row[h] || '')).join(','));
+      });
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'batch_data_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+      const str = String(value);
+      if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    }
+
+    function getProcessColor(process) {
+      const p = process.toLowerCase();
+      if (p === 'natural') return 'var(--natural)';
+      if (p === 'depulped') return 'var(--depulped)';
+      return 'var(--other)';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    init();
+  </script>
+</body>
+</html>
